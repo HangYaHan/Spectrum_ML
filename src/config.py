@@ -6,6 +6,7 @@ original_specs_folder = ".\\RawData\\specs"
 
 grey_csv_folder = ".\\ProcessedData\\FinalCSV"
 spec_csv_folder = ".\\ProcessedData\\FinalCSV"
+CCT_csv_folder = ".\\ProcessedData\\FinalCSV"
 
 def print_csv_shape(csv_filename):
     df = pd.read_csv(csv_filename)
