@@ -185,6 +185,8 @@ def extract_roi_from_image(pic_dir, target_dir):
     with open(save_path, 'w') as f:
         for roi in rois:
             x, y, w, h = roi
+            # 坐标还原到原图
+            x, y, w, h = int(x/2), int(y/2), int(w/2), int(h/2)
             f.write(f"{x},{y},{w},{h}\n")
 
 def calculate_roi_gray_values(pic_dir, target_dir):
@@ -241,11 +243,21 @@ def calculate_cct_for_spectra(spectrum_csv_path, cct_csv_path, step=1, wavelengt
 
 def count_cct_above_threshold(cct_csv_path, threshold=8000):
     pass
-    
+
+def if_nan_in_csv(csv_path):
+        df = pd.read_csv(csv_path, header=None)
+        has_nan = df.isna().any().any()
+        has_error = (df == 'error').any().any()
+        print(f"{csv_path} contains nan: {has_nan}, contains 'error': {has_error}")
+        return has_nan or has_error
 
 if __name__ == "__main__":
 
     # Here is the test environment. For usage, please refer to the dataprocess.py file.
 
-    config.print_csv_shape(os.path.join(config.grey_csv_folder, "grey.csv"))
-    config.print_csv_shape(os.path.join(config.spec_csv_folder, "spectrum.csv"))
+    grey_path = os.path.join(config.final_folder, "grey.csv")
+    spec_path = os.path.join(config.final_folder, "spectrum.csv")
+    config.print_csv_shape(grey_path)
+    config.print_csv_shape(spec_path)
+    if_nan_in_csv(grey_path)
+    if_nan_in_csv(spec_path)

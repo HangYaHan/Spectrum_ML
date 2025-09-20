@@ -9,10 +9,10 @@ import config
 
 if __name__ == "__main__":
     train_resnet18_spectrum(
-        src_csv=os.path.join(config.final_folder, "spectrum.csv"),
-        target_csv=os.path.join(config.final_folder, "CCT.csv"),
-        save_path=os.path.join(config.final_folder, "resnet18_spectrum.pth"),
-        epochs=100,
+        src_csv=os.path.join(config.final_folder, "grey.csv"),
+        target_csv=os.path.join(config.final_folder, "spectrum_5.csv"),
+        save_path=os.path.join(config.final_folder, "resnet18_spectrum"),
+        epochs=1000,
         batch_size=32,
         learning_rate=1e-3,
         device="cpu",

@@ -7,6 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
 
 def train_resnet18_spectrum(
+
     src_csv,
     target_csv,
     save_path,
@@ -27,6 +28,8 @@ def train_resnet18_spectrum(
     from torchvision import models
     import random
 
+    # 自动创建保存目录，避免保存图片时报错
+    os.makedirs(save_path, exist_ok=True)
     # 设置随机种子
     torch.manual_seed(random_seed)
     np.random.seed(random_seed)
@@ -40,15 +43,10 @@ def train_resnet18_spectrum(
             src_data = src_df.iloc[:, 1:].values.astype(np.float32)
             tgt_data = tgt_df.iloc[:, 1:].values.astype(np.float32)
             self.mean = src_data.mean(axis=0)
-            self.std = src_data.std(axis=0) + 1e-8
+            self.std = src_data.std(axis=0)
+            self.std[self.std == 0] = 1  # 防止除零
             self.X = ((src_data - self.mean) / self.std).astype(np.float32)
             self.y = tgt_data
-            print("X mean:", self.mean)
-            print("X std:", self.std)
-            print("X min/max:", self.X.min(), self.X.max())
-            print("y min/max:", self.y.min(), self.y.max())
-            print("X has NaN:", np.isnan(self.X).any())
-            print("y has NaN:", np.isnan(self.y).any())
         def __len__(self):
             return len(self.X)
         def __getitem__(self, idx):
@@ -183,16 +181,18 @@ def train_resnet18_spectrum(
             X_sample = torch.tensor(dataset.X[idx]).unsqueeze(0).to(device)
             y_true = dataset.y[idx]
             y_pred = model(X_sample).cpu().numpy().flatten()
+            wavelengths = np.arange(400, 801, 5)  # 400-800nm
             plt.figure()
-            plt.plot(y_true, label='True', marker='o')
-            plt.plot(y_pred, label='Pred', marker='x')
-            plt.title(f'Sample {i+1} Prediction vs True')
-            plt.xlabel('Output Index')
-            plt.ylabel('Value')
+            plt.plot(wavelengths, y_true, label='True', marker='o')
+            plt.plot(wavelengths, y_pred, label='Pred', marker='x')
+            plt.title(f'Sample {i+1} Spectrum Prediction')
+            plt.xlabel('Wavelength (nm)')
+            plt.ylabel('Power')
             plt.legend()
             plt.grid(True)
             plt.savefig(os.path.join(save_path, f'sample_{i+1}_pred_vs_true.png'))
             plt.close()
+    torch.save(model.state_dict(), os.path.join(save_path, "model.pth"))
 
 if  __name__ == "__main__":
     pass

@@ -35,7 +35,7 @@ def data_preprocessing_pipeline(pic_dir, spec_dir, target_dir):
     # dataprocess_utilities.extract_roi_from_image(pic_dir, target_dir)
     # print("ROIs extracted from images.")
 
-    # 7. Calculate gray values for all ROIs
+    # # 7. Calculate gray values for all ROIs
     # dataprocess_utilities.calculate_roi_gray_values(pic_dir, target_dir)
     # print("Gray values calculated for all ROIs.")
 
