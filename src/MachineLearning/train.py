@@ -12,7 +12,7 @@ if __name__ == "__main__":
         src_csv=os.path.join(config.final_folder, "grey.csv"),
         target_csv=os.path.join(config.final_folder, "spectrum_5.csv"),
         save_path=os.path.join(config.final_folder, "resnet18_spectrum"),
-        epochs=1000,
+        epochs=1500,
         batch_size=32,
         learning_rate=1e-3,
         device="cpu",

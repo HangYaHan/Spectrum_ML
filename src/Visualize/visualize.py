@@ -1,5 +1,6 @@
 import cv2
 import os
+import torch
 
 def draw_rois_on_image(img_path, rois_path, save_path=None):
 	"""
@@ -31,9 +32,18 @@ def draw_rois_on_image(img_path, rois_path, save_path=None):
 		cv2.waitKey(0)
 		cv2.destroyAllWindows()
 
+
+
 # 示例调用
 if __name__ == "__main__":
 	img_path = os.path.join('RawData', 'pics', '0001.jpg')
 	rois_path = os.path.join('ProcessedData', 'FinalCSV', 'rois.txt')
 	save_path = os.path.join('ProcessedData', 'FinalCSV', '0001_with_rois.jpg')
-	draw_rois_on_image(img_path, rois_path, save_path)
+	# draw_rois_on_image(img_path, rois_path, save_path)
+
+	model_path = os.path.join('ProcessedData', 'FinalCSV', 'resnet18_spectrum', 'model.pth')
+	try:
+		model = torch.load(model_path, map_location='cpu')
+		print("模型加载成功。")
+	except Exception as e:
+		print(f"模型加载失败: {e}")
