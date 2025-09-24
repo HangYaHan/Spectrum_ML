@@ -9,12 +9,15 @@ import config
 
 if __name__ == "__main__":
     train_resnet18_spectrum(
+        min_wavelength=800,
+        max_wavelength=1050,
+        step=1,
         src_csv=os.path.join(config.final_folder, "grey.csv"),
-        target_csv=os.path.join(config.final_folder, "spectrum_5.csv"),
+        target_csv=os.path.join(config.final_folder, "spectrum.csv"),
         save_path=os.path.join(config.final_folder, "resnet18_spectrum"),
         epochs=1500,
-        batch_size=32,
-        learning_rate=1e-3,
+        batch_size=8,
+        learning_rate=5e-2,
         device="cpu",
         random_seed=42,
         optimizer="adam",

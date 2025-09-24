@@ -7,11 +7,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import config
 
 def train_resnet18_spectrum(
-
+    min_wavelength,
+    max_wavelength,
+    step,
     src_csv,
     target_csv,
     save_path,
-    epochs=50,
+    epochs=1000,
     batch_size=32,
     learning_rate=1e-3,
     device="cpu",
@@ -181,7 +183,7 @@ def train_resnet18_spectrum(
             X_sample = torch.tensor(dataset.X[idx]).unsqueeze(0).to(device)
             y_true = dataset.y[idx]
             y_pred = model(X_sample).cpu().numpy().flatten()
-            wavelengths = np.arange(400, 801, 5)  # 400-800nm
+            wavelengths = np.arange(min_wavelength, max_wavelength + 1, step)
             plt.figure()
             plt.plot(wavelengths, y_true, label='True', marker='o')
             plt.plot(wavelengths, y_pred, label='Pred', marker='x')

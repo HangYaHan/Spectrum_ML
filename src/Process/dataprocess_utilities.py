@@ -121,7 +121,7 @@ def convert_spectrum_to_int(spec_dir):
             convert_to_int_file(os.path.join(spec_dir, filename))
     
 
-def filter_wavelength_range(spec_dir, min_wavelength=400, max_wavelength=800):
+def filter_wavelength_range(spec_dir, min_wavelength, max_wavelength):
     for filename in os.listdir(spec_dir):
         if filename.endswith('.txt'):
             file_path = os.path.join(spec_dir, filename)
@@ -142,9 +142,10 @@ def filter_wavelength_range(spec_dir, min_wavelength=400, max_wavelength=800):
             with open(file_path, 'w', encoding='utf-8') as fout:
                 fout.writelines(lines_to_keep)
 
-def spectrum_to_csv(spec_dir, target_dir):
+def spectrum_to_csv(spec_dir, target_dir, min_wavelength, max_wavelength):
     import csv
     save_csv = os.path.join(target_dir, 'spectrum.csv')
+    os.makedirs(os.path.dirname(save_csv), exist_ok=True)
     files = [f for f in os.listdir(spec_dir) if f.lower().endswith('.txt')]
     files.sort(key=lambda x: int(os.path.splitext(x)[0]))
     spectra = []
@@ -159,9 +160,9 @@ def spectrum_to_csv(spec_dir, target_dir):
                         values.append(int(float(parts[1])))
                     except Exception:
                         values.append('nan')
-        values = values[:401]
-        if len(values) < 401:
-            values += ['nan'] * (401 - len(values))
+        values = values[:max_wavelength - min_wavelength + 1]
+        if len(values) < max_wavelength - min_wavelength + 1:
+            values += ['nan'] * ((max_wavelength - min_wavelength + 1) - len(values))
         spectra.append([idx] + values)
     with open(save_csv, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -170,13 +171,20 @@ def spectrum_to_csv(spec_dir, target_dir):
 
 def extract_roi_from_image(pic_dir, target_dir):
     import cv2
-    img_path = os.path.join(pic_dir, '0001.jpg')
+    # 查找目录下的第一张图片（jpg 或 png）
+    img_files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png'))]
+    if not img_files:
+        print(f"No image files found in: {pic_dir}")
+        return
+    img_files.sort()  # 按文件名排序，取第一个
+    img_path = os.path.join(pic_dir, img_files[0])
     img = cv2.imread(img_path)
     if img is None:
         print(f"Failed to load image: {img_path}")
         return
 
-    img = cv2.resize(img, None, fx=2, fy=2, interpolation=cv2.INTER_LINEAR)
+    zoom_factor = 1
+    img = cv2.resize(img, None, fx=zoom_factor, fy=zoom_factor, interpolation=cv2.INTER_LINEAR)
 
     rois = cv2.selectROIs("Select ROIs (ESC to finish)", img, showCrosshair=True, fromCenter=False)
     cv2.destroyAllWindows()
@@ -186,7 +194,7 @@ def extract_roi_from_image(pic_dir, target_dir):
         for roi in rois:
             x, y, w, h = roi
             # 坐标还原到原图
-            x, y, w, h = int(x/2), int(y/2), int(w/2), int(h/2)
+            x, y, w, h = int(x/zoom_factor), int(y/zoom_factor), int(w/zoom_factor), int(h/zoom_factor)
             f.write(f"{x},{y},{w},{h}\n")
 
 def calculate_roi_gray_values(pic_dir, target_dir):
@@ -202,8 +210,8 @@ def calculate_roi_gray_values(pic_dir, target_dir):
             parts = line.strip().split(',')
             if len(parts) == 4:
                 rois.append(tuple(map(int, parts)))
-    # 获取所有jpg图片
-    files = [f for f in os.listdir(pic_dir) if f.lower().endswith('.jpg')]
+    # 获取所有 jpg 和 png 图片
+    files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png'))]
     files.sort()
     # 写入csv，首列为序号
     with open(save_csv, 'w', newline='') as csvfile:
