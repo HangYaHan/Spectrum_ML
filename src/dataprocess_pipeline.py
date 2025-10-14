@@ -1,13 +1,20 @@
-import dataprocess_utilities
 import os
-import config
+from . import dataprocess_utilities
 
-
-def data_preprocessing_pipeline(pic_dir, spec_dir, target_dir, min_wavelength=400, max_wavelength=800):
+def data_process_pipeline(target_dir, src_dir, temp_dir, min_wavelength=400, max_wavelength=800):
     """
     Main pipeline for data preprocessing and feature extraction.
     Each step should be implemented as a separate function.
     """
+
+    # 0. Make a copy of original data to temp folder
+    dataprocess_utilities.copy_original_data(temp_dir, src_dir)
+    spec_dir = os.path.join(temp_dir, "specs")
+    pic_dir = os.path.join(temp_dir, "pics")
+    # Create target_dir if it does not exist
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+
     # 1. Rename and match files
     dataprocess_utilities.rename_and_match_files(pic_dir, spec_dir)
     print("Files renamed and matched.")
@@ -44,16 +51,9 @@ def data_preprocessing_pipeline(pic_dir, spec_dir, target_dir, min_wavelength=40
 
     # 8. Check CSV shapes
     dataprocess_utilities.load_and_check_csv(target_dir)
+    print("CSV shapes checked.")
 
+    # 9. Clean up temporary files
+    dataprocess_utilities.cleanup_temp_files(temp_dir)
+    print("Temporary files cleaned up.")
     # -----------------------------------
-
-    # 9. Calculate CCT for all spectra
-    # calculate_cct_for_spectra(spectrum_csv_path, cct_csv_path, step=1, wavelength_s=400, wavelength_e=800)
-
-    # 10. Count CCT above threshold
-    # count_cct_above_threshold(cct_csv_path, threshold=8000)
-
-    pass  # Remove after implementing each step
-
-if __name__ == "__main__":
-    data_preprocessing_pipeline(config.original_pics_folder, config.original_specs_folder, config.final_folder, 800, 1050)

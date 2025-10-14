@@ -1,3 +1,6 @@
-/RawData
-/FinalData
-/ProcessedData
+.gitattributes
+/rawdata
+/temp
+/result/*
+/__pycache__
+/src/__pycache__

@@ -8,57 +8,6 @@ from collections import defaultdict
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import config
-import colour
-
-def calculate_CCT(spectrum, CCT, step=1, wavelength_s=400, wavelength_e=800):
-    """
-    Calculate the Correlated Color Temperature (CCT) from a given spectrum.
-
-    Parameters:
-    - spectrum: A list or array of spectral power distribution values.
-    - target_file: Path to the file where the CCT result will be saved.
-    - step: The wavelength step size (default is 1 nm).
-    - wavelength_s: Starting wavelength (default is 400 nm).
-    - wavelength_e: Ending wavelength (default is 700 nm).
-
-    Returns:
-    - cct: The calculated CCT value.
-    """
-    import colour
-    import numpy as np
-
-    # Generate wavelength array
-    wavelengths = np.arange(wavelength_s, wavelength_e + step, step)
-
-    # Ensure the spectrum length matches the wavelength array length
-    if len(spectrum) != len(wavelengths):
-        raise ValueError("Spectrum length does not match the wavelength range.")
-
-    # Create a colour.SpectralDistribution object
-    sd = colour.SpectralDistribution(dict(zip(wavelengths, spectrum)), name='Sample Spectrum')
-    XYZ = colour.sd_to_XYZ(sd)
-    xy = colour.XYZ_to_xy(XYZ)
-    cct = colour.temperature.xy_to_CCT(xy)
-
-    return int(cct)
-
-def f_calculate_CCT(spectrum_csv, CCT_csv, step=1, wavelength_s=400, wavelength_e=800):
-    spectrum_df = pd.read_csv(spectrum_csv)
-
-    CCT_list = []
-    for index, row in spectrum_df.iterrows():
-        spectrum = row[0:].values  # Assume the first column is an identifier
-        cct = calculate_CCT(spectrum, CCT_csv, step, wavelength_s, wavelength_e)
-        CCT_list.append(cct)
-
-    # Create DataFrame and save, overwrite file if it exists
-    CCT_df = pd.DataFrame({'CCT': CCT_list})
-    CCT_df.to_csv(CCT_csv, index=False)
-    
-def count_over_CCT(CCT_csv, threshold=8000):
-    CCT_df = pd.read_csv(CCT_csv)
-    count = (CCT_df['CCT'] > threshold).sum()
-    return count
 
 def rename_and_match_files(pic_dir, spec_dir):
     def rename_files_in_dir(dir):
@@ -171,13 +120,15 @@ def spectrum_to_csv(spec_dir, target_dir, min_wavelength, max_wavelength):
 
 def extract_roi_from_image(pic_dir, target_dir):
     import cv2
-    # 查找目录下的第一张图片（jpg 或 png）
-    img_files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png'))]
+    # find first image file
+    img_files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png', '.bmp'))]
     if not img_files:
         print(f"No image files found in: {pic_dir}")
         return
-    img_files.sort()  # 按文件名排序，取第一个
-    img_path = os.path.join(pic_dir, img_files[0])
+    img_files.sort()  # sort files by name
+    # get the middle one after sorting by filename
+    mid_index = len(img_files) // 2
+    img_path = os.path.join(pic_dir, img_files[mid_index])
     img = cv2.imread(img_path)
     if img is None:
         print(f"Failed to load image: {img_path}")
@@ -193,7 +144,7 @@ def extract_roi_from_image(pic_dir, target_dir):
     with open(save_path, 'w') as f:
         for roi in rois:
             x, y, w, h = roi
-            # 坐标还原到原图
+            # rescale back to original size if zoomed
             x, y, w, h = int(x/zoom_factor), int(y/zoom_factor), int(w/zoom_factor), int(h/zoom_factor)
             f.write(f"{x},{y},{w},{h}\n")
 
@@ -203,17 +154,17 @@ def calculate_roi_gray_values(pic_dir, target_dir):
     import csv
     rois_txt = os.path.join(target_dir, 'rois.txt')
     save_csv = os.path.join(target_dir, 'grey.csv')
-    # 读取ROI列表
+    # read rois
     rois = []
     with open(rois_txt, 'r') as f:
         for line in f:
             parts = line.strip().split(',')
             if len(parts) == 4:
                 rois.append(tuple(map(int, parts)))
-    # 获取所有 jpg 和 png 图片
-    files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png'))]
+    # read images and calculate gray values
+    files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png', '.bmp'))]
     files.sort()
-    # 写入csv，首列为序号
+    # write to csv, first column is index
     with open(save_csv, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         for idx, fname in enumerate(files, 1):
@@ -246,11 +197,11 @@ def load_and_check_csv(target_dir):
     else:
         print(f"Row count is NOT equal! spectrum.csv: {spectrum_df.shape[0]}, grey.csv: {grey_df.shape[0]}")
 
-def calculate_cct_for_spectra(spectrum_csv_path, cct_csv_path, step=1, wavelength_s=400, wavelength_e=800):
-    pass
-
-def count_cct_above_threshold(cct_csv_path, threshold=8000):
-    pass
+def copy_original_data(temp_dir, src_dir):
+    import shutil
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
+    shutil.copytree(src_dir, temp_dir)
 
 def if_nan_in_csv(csv_path):
         df = pd.read_csv(csv_path, header=None)
@@ -258,6 +209,11 @@ def if_nan_in_csv(csv_path):
         has_error = (df == 'error').any().any()
         print(f"{csv_path} contains nan: {has_nan}, contains 'error': {has_error}")
         return has_nan or has_error
+
+def cleanup_temp_files(temp_dir):
+    import shutil
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
 
 if __name__ == "__main__":
 

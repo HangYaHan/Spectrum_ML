@@ -5,6 +5,7 @@ import torchvision
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import config
+from .models import ResNet1D
 
 def train_resnet18_spectrum(
     min_wavelength,
@@ -57,67 +58,6 @@ def train_resnet18_spectrum(
     # 数据加载
     dataset = SpectrumDataset(src_csv, target_csv)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
-
-    # 一维残差网络定义
-    class BasicBlock1D(nn.Module):
-        def __init__(self, in_channels, out_channels, stride=1):
-            super().__init__()
-            self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
-            self.bn1 = nn.BatchNorm1d(out_channels)
-            self.relu = nn.ReLU(inplace=True)
-            self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
-            self.bn2 = nn.BatchNorm1d(out_channels)
-            self.downsample = None
-            if stride != 1 or in_channels != out_channels:
-                self.downsample = nn.Sequential(
-                    nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=stride),
-                    nn.BatchNorm1d(out_channels)
-                )
-        def forward(self, x):
-            identity = x
-            out = self.conv1(x)
-            out = self.bn1(out)
-            out = self.relu(out)
-            out = self.conv2(out)
-            out = self.bn2(out)
-            if self.downsample is not None:
-                identity = self.downsample(x)
-            out += identity
-            out = self.relu(out)
-            return out
-
-    class ResNet1D(nn.Module):
-        def __init__(self, input_dim, output_dim, base_channels=32, layers=[2,2,2]):
-            super().__init__()
-            self.input_dim = input_dim
-            self.output_dim = output_dim
-            self.base_channels = base_channels
-            self.conv1 = nn.Conv1d(1, base_channels, kernel_size=7, stride=2, padding=3)
-            self.bn1 = nn.BatchNorm1d(base_channels)
-            self.relu = nn.ReLU(inplace=True)
-            self.layer1 = self._make_layer(base_channels, base_channels, layers[0])
-            self.layer2 = self._make_layer(base_channels, base_channels*2, layers[1], stride=2)
-            self.layer3 = self._make_layer(base_channels*2, base_channels*4, layers[2], stride=2)
-            self.gap = nn.AdaptiveAvgPool1d(1)
-            self.fc = nn.Linear(base_channels*4, output_dim)
-        def _make_layer(self, in_channels, out_channels, blocks, stride=1):
-            layers = [BasicBlock1D(in_channels, out_channels, stride)]
-            for _ in range(1, blocks):
-                layers.append(BasicBlock1D(out_channels, out_channels))
-            return nn.Sequential(*layers)
-        def forward(self, x):
-            # x: (batch, input_dim) -> (batch, 1, input_dim)
-            x = x.unsqueeze(1)
-            out = self.conv1(x)
-            out = self.bn1(out)
-            out = self.relu(out)
-            out = self.layer1(out)
-            out = self.layer2(out)
-            out = self.layer3(out)
-            out = self.gap(out)
-            out = out.view(out.size(0), -1)
-            out = self.fc(out)
-            return out
 
     input_dim = dataset.X.shape[1]
     output_dim = dataset.y.shape[1] if len(dataset.y.shape) > 1 else 1
@@ -175,7 +115,9 @@ def train_resnet18_spectrum(
     indices = np.arange(len(dataset))
     np.random.shuffle(indices)
     test_indices = indices[-test_size:]
-    sample_indices = np.random.choice(test_indices, size=5, replace=False)
+    # 确保抽样数量不超过测试集大小
+    sample_size = min(5, len(test_indices))
+    sample_indices = np.random.choice(test_indices, size=sample_size, replace=False)
 
     model.eval()
     with torch.no_grad():
@@ -184,17 +126,22 @@ def train_resnet18_spectrum(
             y_true = dataset.y[idx]
             y_pred = model(X_sample).cpu().numpy().flatten()
             wavelengths = np.arange(min_wavelength, max_wavelength + 1, step)
+            # 绘制原始光谱和生成光谱的对比图
             plt.figure()
-            plt.plot(wavelengths, y_true, label='True', marker='o')
-            plt.plot(wavelengths, y_pred, label='Pred', marker='x')
-            plt.title(f'Sample {i+1} Spectrum Prediction')
+            plt.plot(wavelengths, y_true, label='Original Spectrum', marker='o')
+            plt.plot(wavelengths, y_pred, label='Generated Spectrum', marker='x')
+            plt.title(f'Sample {i+1} Spectrum Comparison')
             plt.xlabel('Wavelength (nm)')
-            plt.ylabel('Power')
+            plt.ylabel('Intensity')
             plt.legend()
             plt.grid(True)
-            plt.savefig(os.path.join(save_path, f'sample_{i+1}_pred_vs_true.png'))
+            plt.savefig(os.path.join(save_path, f'sample_{i+1}_spectrum_comparison.png'))
             plt.close()
     torch.save(model.state_dict(), os.path.join(save_path, "model.pth"))
+    # 保存输入数据归一化参数
+    np.save(os.path.join(save_path, "input_mean.npy"), dataset.mean)
+    np.save(os.path.join(save_path, "input_std.npy"), dataset.std)
+    print("已保存归一化参数：input_mean.npy, input_std.npy")
 
 if  __name__ == "__main__":
     pass
