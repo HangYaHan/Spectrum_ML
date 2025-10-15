@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     # Append current timestamp to target_dir
     timestamp = datetime.now().strftime("%Y_%m_%d_%H%M")
-    target_dir_timestamped = f"{config.target_folder}_{timestamp}"
+    target_dir_timestamped = f"{config.target_folder}_2025_10_15_1332"
 
     train_utilities.train_resnet18_spectrum(
         min_wavelength=config.min_wavelength,
@@ -19,7 +19,7 @@ if __name__ == "__main__":
         src_csv=os.path.join(target_dir_timestamped, "grey.csv"),
         target_csv=os.path.join(target_dir_timestamped, "spectrum.csv"),
         save_path=target_dir_timestamped,
-        epochs=100,
+        epochs=config.epochs,
         batch_size=32,
         learning_rate=1e-3,
         device="cpu",

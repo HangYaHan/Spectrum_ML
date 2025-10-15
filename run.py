@@ -28,7 +28,7 @@ if __name__ == "__main__":
         src_csv=os.path.join(target_dir_timestamped, "grey.csv"),
         target_csv=os.path.join(target_dir_timestamped, "spectrum.csv"),
         save_path=target_dir_timestamped,
-        epochs=100,
+        epochs=config.epochs,
         batch_size=32,
         learning_rate=1e-3,
         device="cpu",

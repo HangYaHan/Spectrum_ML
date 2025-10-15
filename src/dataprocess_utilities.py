@@ -104,11 +104,16 @@ def spectrum_to_csv(spec_dir, target_dir, min_wavelength, max_wavelength):
         with open(path, 'r', encoding='utf-8') as f:
             for line in f:
                 parts = line.strip().split()
+                # print(f"Raw line: {line.strip()}, Parsed parts: {parts}")
                 if len(parts) >= 2:
                     try:
-                        values.append(int(float(parts[1])))
-                    except Exception:
+                        value = int(float(parts[1]))
+                        values.append(value)
+                    except Exception as e:
+                        print(f"Error parsing value: {parts[1]}, Error: {e}")
                         values.append('nan')
+                else:
+                    print(f"Line skipped due to format: {line.strip()}")
         values = values[:max_wavelength - min_wavelength + 1]
         if len(values) < max_wavelength - min_wavelength + 1:
             values += ['nan'] * ((max_wavelength - min_wavelength + 1) - len(values))
