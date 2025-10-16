@@ -10,7 +10,7 @@ if __name__ == "__main__":
     model_path = config.test_dir + "model.pth"
     input_mean_path = config.test_dir + "input_mean.npy"
     input_std_path = config.test_dir + "input_std.npy"
-    test_image = "1000.bmp"
+    test_image = "900.bmp"
 
     # 获取灰度值
     rois = test_utilities.get_rois(config.test_dir)
@@ -19,7 +19,6 @@ if __name__ == "__main__":
     input_dim = rois.__len__()
     output_dim = config.max_wavelength - config.min_wavelength + 1
     
-
     # 加载模型
     model = test_utilities.load_resnet1d_model(model_path, input_dim, output_dim)
     print(model)
