@@ -1,4 +1,15 @@
 import cv2
+import os
+from datetime import datetime
+
+
+def ensure_dir(path: str) -> None:
+    """Create directory if it doesn't exist."""
+    try:
+        os.makedirs(path, exist_ok=True)
+    except Exception as e:
+        print(f"无法创建目录 {path}: {e}")
+
 
 if __name__ == "__main__":
     # 打开摄像头 1
@@ -8,7 +19,10 @@ if __name__ == "__main__":
         print("无法打开摄像头 1")
         exit()
 
-    print("按回车键保存截图，按 ESC 键退出程序。")
+    screenshots_dir = "screenshots"
+    ensure_dir(screenshots_dir)
+
+    print("按回车键保存截图，按 ESC 键退出程序。每次保存会生成一个唯一文件名（不会覆盖）。")
 
     while True:
         # 读取摄像头画面
@@ -24,9 +38,16 @@ if __name__ == "__main__":
         key = cv2.waitKey(1) & 0xFF
         if key == 27:  # ESC 键退出
             break
-        elif key == 13:  # 回车键保存截图
-            cv2.imwrite("screenshot.png", frame)
-            print("截图已保存为 screenshot.png")
+        elif key in (13, 10):  # 回车键保存截图 (CR and LF)
+            # 生成基于时间戳的唯一文件名，保留毫秒
+            ts = datetime.now().strftime('%Y%m%d_%H%M%S_%f')[:-3]
+            filename = f"screenshot_{ts}.png"
+            filepath = os.path.join(screenshots_dir, filename)
+            try:
+                cv2.imwrite(filepath, frame)
+                print(f"截图已保存为 {filepath}")
+            except Exception as e:
+                print(f"保存截图失败: {e}")
 
     # 释放资源
     cap.release()
