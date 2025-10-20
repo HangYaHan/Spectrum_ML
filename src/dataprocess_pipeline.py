@@ -1,14 +1,18 @@
 import os
+import shutil
 from . import dataprocess_utilities
 
-def data_process_pipeline(target_dir, src_dir, temp_dir, min_wavelength=400, max_wavelength=800):
+def data_process_pipeline_OV(target_dir, src_dir, temp_dir, min_wavelength, max_wavelength):
     """
-    Main pipeline for data preprocessing and feature extraction.
+    Main pipeline for Ocean View data preprocessing and feature extraction.
     Each step should be implemented as a separate function.
     """
 
-    # 0. Make a copy of original data to temp folder
+     # 0. Make a copy of original data to temp folder
     dataprocess_utilities.copy_original_data(temp_dir, src_dir)
+    # 检查 temp_dir 中是否存在 rois.txt
+    if dataprocess_utilities.check_and_copy_rois(temp_dir, target_dir):
+        return
     spec_dir = os.path.join(temp_dir, "specs")
     pic_dir = os.path.join(temp_dir, "pics")
     # Create target_dir if it does not exist
@@ -57,3 +61,57 @@ def data_process_pipeline(target_dir, src_dir, temp_dir, min_wavelength=400, max
     dataprocess_utilities.cleanup_temp_files(temp_dir)
     print("Temporary files cleaned up.")
     # -----------------------------------
+
+def data_process_pipeline_IA(target_dir, src_dir, temp_dir, min_wavelength, max_wavelength):
+    """
+    Main pipeline for Idea Optics data preprocessing and feature extraction.
+    Each step should be implemented as a separate function.
+    """
+     # 0. Make a copy of original data to temp folder
+    dataprocess_utilities.copy_original_data(temp_dir, src_dir)
+    # 检查 temp_dir 中是否存在 rois.txt
+    if dataprocess_utilities.check_and_copy_rois(temp_dir, target_dir):
+        return
+    spec_dir = os.path.join(temp_dir, "specs")
+    pic_dir = os.path.join(temp_dir, "pics")
+    # Create target_dir if it does not exist
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+
+    # 1. Rename and match files
+    dataprocess_utilities.rename_and_match_files(pic_dir, spec_dir)
+    print("Files renamed and matched.")
+
+    # 2. Remove head and get intensity from spectrum files
+    dataprocess_utilities.remove_head_and_get_intensity(spec_dir)
+    print("Header removed and intensity extracted from spectrum files.")
+
+    # 3. Convert separate files into one CSV
+    dataprocess_utilities.merge_csv_to_one(spec_dir, target_dir)
+    print("Separate spectrum files converted to one CSV.")
+
+    # --- Spectrum process complete ---
+    print("--- Spectrum processing complete ---")
+
+    # 6. Extract ROIs from images
+    dataprocess_utilities.extract_roi_from_image(pic_dir, target_dir)
+    print("ROIs extracted from images.")
+
+    # 7. Calculate gray values for all ROIs
+    dataprocess_utilities.calculate_roi_gray_values(pic_dir, target_dir)
+    print("Gray values calculated for all ROIs.")
+
+    # --- Data preprocessing pipeline complete ---
+    print("--- Data preprocessing pipeline complete ---")
+
+    # 8. Check CSV shapes
+    dataprocess_utilities.load_and_check_csv(target_dir)
+    print("CSV shapes checked.")
+
+    # 9. Clean up temporary files
+    dataprocess_utilities.cleanup_temp_files(temp_dir)
+    print("Temporary files cleaned up.")
+    # -----------------------------------
+
+
+

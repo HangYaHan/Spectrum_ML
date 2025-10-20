@@ -125,13 +125,11 @@ def train_resnet18_spectrum(
             X_sample = torch.tensor(dataset.X[idx]).unsqueeze(0).to(device)
             y_true = dataset.y[idx]
             y_pred = model(X_sample).cpu().numpy().flatten()
-            wavelengths = np.arange(min_wavelength, max_wavelength + 1, step)
             # 绘制原始光谱和生成光谱的对比图
             plt.figure()
-            plt.plot(wavelengths, y_true, label='Original Spectrum', marker='o')
-            plt.plot(wavelengths, y_pred, label='Generated Spectrum', marker='x')
+            plt.plot(y_true, label='Original Spectrum', marker='o')
+            plt.plot(y_pred, label='Generated Spectrum', marker='x')
             plt.title(f'Sample {i+1} Spectrum Comparison')
-            plt.xlabel('Wavelength (nm)')
             plt.ylabel('Intensity')
             plt.legend()
             plt.grid(True)

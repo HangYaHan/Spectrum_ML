@@ -1,7 +1,9 @@
+import csv
 import sys
 import os
 import pathlib
 import pandas as pd
+import shutil
 
 from collections import defaultdict
 
@@ -130,7 +132,7 @@ def extract_roi_from_image(pic_dir, target_dir):
     if not img_files:
         print(f"No image files found in: {pic_dir}")
         return
-    img_files.sort()  # sort files by name
+    img_files.sort(key=lambda x: os.path.getctime(os.path.join(pic_dir, x)))  # sort files by creation time
     # get the middle one after sorting by filename
     mid_index = len(img_files) // 2
     img_path = os.path.join(pic_dir, img_files[mid_index])
@@ -220,13 +222,72 @@ def cleanup_temp_files(temp_dir):
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
 
+def remove_head_and_get_intensity_file(source_file):
+    if not os.path.isfile(source_file):
+        print(f"File not found: {source_file}")
+        return None
+
+    with open(source_file, 'r', newline='', encoding='utf-8-sig') as f:
+        reader = csv.reader(f)
+        next(reader, None)  # 跳过header行
+        data = [int(float(row[1])) for row in reader if len(row) > 1]  # 只保留第二列并取整
+
+    with open(source_file, 'w', newline='', encoding='utf-8-sig') as f:
+        writer = csv.writer(f)
+        for value in data:
+            writer.writerow([value])  # 保存第二列数据覆盖原文件
+
+    # print(f"Processed file saved: {source_file}")
+    return source_file
+
+def remove_head_and_get_intensity(spec_dir):
+    for filename in os.listdir(spec_dir):
+        file_path = os.path.join(spec_dir, filename)
+        if os.path.isfile(file_path) and filename.endswith('.csv'):
+            remove_head_and_get_intensity_file(file_path)
+    
+def merge_csv_to_one(spec_dir, target_dir):
+    import csv
+    from operator import itemgetter
+
+    # 获取所有 CSV 文件，并按创建时间排序
+    files = [f for f in os.listdir(spec_dir) if f.lower().endswith('.csv')]
+    files_with_time = [(f, os.path.getctime(os.path.join(spec_dir, f))) for f in files]
+    files_with_time.sort(key=itemgetter(1))
+
+    # 合并数据
+    merged_data = []
+    for file, _ in files_with_time:
+        file_path = os.path.join(spec_dir, file)
+        with open(file_path, 'r', newline='', encoding='utf-8-sig') as f:
+            reader = csv.reader(f)
+            row_data = [row[0] for row in reader]  # 读取单列数据
+            merged_data.append(row_data)  # 每个文件的数据作为一行
+
+    # 保存到目标文件
+    os.makedirs(target_dir, exist_ok=True)
+    output_file = os.path.join(target_dir, 'spectrum.csv')
+    with open(output_file, 'w', newline='', encoding='utf-8-sig') as f:
+        writer = csv.writer(f)
+        writer.writerows(merged_data)  # 按行保存
+
+    print(f"Merged CSV saved to: {output_file}")
+
 if __name__ == "__main__":
+    test_file = "temp/specs/001.csv"  # 替换为你的测试文件路径
+    header = remove_head_and_get_intensity_file(test_file)
+    if header:
+        print(f"Header of the file: {header}")
 
-    # Here is the test environment. For usage, please refer to the dataprocess.py file.
 
-    grey_path = os.path.join(config.final_folder, "grey.csv")
-    spec_path = os.path.join(config.final_folder, "spectrum.csv")
-    config.print_csv_shape(grey_path)
-    config.print_csv_shape(spec_path)
-    if_nan_in_csv(grey_path)
-    if_nan_in_csv(spec_path)
+def check_and_copy_rois(temp_dir, target_dir):
+    """
+    Check if rois.txt exists in temp_dir and copy it to target_dir if found.
+    """
+    rois_path = os.path.join(temp_dir, 'rois.txt')
+    if os.path.exists(rois_path):
+        print(f"Found existing rois.txt in {temp_dir}, copying to {target_dir}.")
+        os.makedirs(target_dir, exist_ok=True)
+        shutil.copy(rois_path, os.path.join(target_dir, 'rois.txt'))
+        return True
+    return False
