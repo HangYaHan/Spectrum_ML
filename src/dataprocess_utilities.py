@@ -127,11 +127,20 @@ def spectrum_to_csv(spec_dir, target_dir, min_wavelength, max_wavelength):
 
 def extract_roi_from_image(pic_dir, target_dir):
     import cv2
+    import os
+
+    # 检查 target_dir 中是否已存在 rois.txt
+    rois_path = os.path.join(target_dir, 'rois.txt')
+    if os.path.exists(rois_path):
+        print(f"rois.txt already exists in {target_dir}, skipping ROI extraction.")
+        return
+
     # find first image file
     img_files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png', '.bmp'))]
     if not img_files:
         print(f"No image files found in: {pic_dir}")
         return
+
     img_files.sort(key=lambda x: os.path.getctime(os.path.join(pic_dir, x)))  # sort files by creation time
     # get the middle one after sorting by filename
     mid_index = len(img_files) // 2
@@ -159,26 +168,52 @@ def calculate_roi_gray_values(pic_dir, target_dir):
     import os
     import cv2
     import csv
+
+    # 读取 bgrois.txt 中的 x 值
+    bgrois_path = os.path.join(target_dir, 'bgrois.txt')
+    if not os.path.exists(bgrois_path):
+        print(f"bgrois.txt not found in {target_dir}.")
+        return
+
+    with open(bgrois_path, 'r') as f:
+        line = f.readline().strip()
+        parts = line.split(',')
+        if len(parts) < 5:
+            print(f"Invalid format in bgrois.txt: {line}")
+            return
+        try:
+            x_value = float(parts[4])
+        except ValueError:
+            print(f"Invalid x value in bgrois.txt: {parts[4]}")
+            return
+
+    if x_value == 0:
+        print("x value in bgrois.txt is zero, cannot divide by zero.")
+        return
+
     rois_txt = os.path.join(target_dir, 'rois.txt')
     save_csv = os.path.join(target_dir, 'grey.csv')
-    # read rois
+
+    # 读取 rois
     rois = []
     with open(rois_txt, 'r') as f:
         for line in f:
             parts = line.strip().split(',')
             if len(parts) == 4:
                 rois.append(tuple(map(int, parts)))
-    # read images and calculate gray values
+
+    # 读取图片并计算灰度值
     files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png', '.bmp'))]
     files.sort()
-    # write to csv, first column is index
+
+    # 写入 csv，第一列是索引
     with open(save_csv, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         for idx, fname in enumerate(files, 1):
             img_path = os.path.join(pic_dir, fname)
             img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
             if img is None:
-                row = [idx] + ['error']*len(rois)
+                row = [idx] + ['error'] * len(rois)
                 writer.writerow(row)
                 continue
             row = [idx]
@@ -187,7 +222,8 @@ def calculate_roi_gray_values(pic_dir, target_dir):
                 if roi.size == 0:
                     row.append('nan')
                 else:
-                    row.append(int(roi.mean()))
+                    avg_gray = roi.mean() / x_value  # 除以 x 值
+                    row.append(avg_gray)
             writer.writerow(row)
 
 def load_and_check_csv(target_dir):
@@ -282,12 +318,75 @@ if __name__ == "__main__":
 
 def check_and_copy_rois(temp_dir, target_dir):
     """
-    Check if rois.txt exists in temp_dir and copy it to target_dir if found.
+    Check if rois.txt and bgrois.txt exist in temp_dir and copy them to target_dir if found.
     """
-    rois_path = os.path.join(temp_dir, 'rois.txt')
-    if os.path.exists(rois_path):
-        print(f"Found existing rois.txt in {temp_dir}, copying to {target_dir}.")
-        os.makedirs(target_dir, exist_ok=True)
-        shutil.copy(rois_path, os.path.join(target_dir, 'rois.txt'))
+    files_to_check = ['rois.txt', 'bgrois.txt']
+    copied_files = []
+
+    for file_name in files_to_check:
+        file_path = os.path.join(temp_dir, file_name)
+        if os.path.exists(file_path):
+            print(f"Found existing {file_name} in {temp_dir}, copying to {target_dir}.")
+            os.makedirs(target_dir, exist_ok=True)
+            shutil.copy(file_path, os.path.join(target_dir, file_name))
+            copied_files.append(file_name)
+
+    if copied_files:
+        print(f"Copied files: {', '.join(copied_files)}")
         return True
+
+    print("No files were copied.")
     return False
+
+def extract_bgroi_from_image(pic_dir, target_dir):
+    import cv2
+    import os
+
+    # 检查 target_dir 中是否已存在 bgrois.txt
+    bgrois_path = os.path.join(target_dir, 'bgrois.txt')
+    if os.path.exists(bgrois_path):
+        print(f"bgrois.txt already exists in {target_dir}, skipping ROI extraction.")
+        return
+
+    # 获取所有图片文件
+    img_files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png', '.bmp'))]
+    if not img_files:
+        print(f"No image files found in: {pic_dir}")
+        return
+
+    # 按创建时间排序
+    img_files.sort(key=lambda x: os.path.getctime(os.path.join(pic_dir, x)))
+
+    # 获取中间图片
+    mid_index = len(img_files) // 2
+    img_path = os.path.join(pic_dir, img_files[mid_index])
+    img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        print(f"Failed to load image: {img_path}")
+        return
+
+    # 让用户选择 ROI
+    roi = cv2.selectROI("Select ROI (ESC to finish)", img, showCrosshair=True, fromCenter=False)
+    cv2.destroyAllWindows()
+
+    if roi == (0, 0, 0, 0):
+        print("No ROI selected.")
+        return
+
+    x, y, w, h = roi
+    selected_roi = img[y:y+h, x:x+w]
+
+    # 计算 ROI 的平均灰度值
+    if selected_roi.size == 0:
+        print("Selected ROI is empty.")
+        return
+
+    avg_gray_value = selected_roi.mean()
+
+    # 保存结果到 bgrois.txt
+    os.makedirs(target_dir, exist_ok=True)
+    save_path = os.path.join(target_dir, 'bgrois.txt')
+    with open(save_path, 'w') as f:
+        f.write(f"{x},{y},{w},{h},{avg_gray_value:.2f}\n")
+
+    print(f"ROI average gray value saved to: {save_path}")

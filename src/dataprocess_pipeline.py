@@ -1,5 +1,7 @@
 import os
 import shutil
+
+import config
 from . import dataprocess_utilities
 
 def data_process_pipeline_OV(target_dir, src_dir, temp_dir, min_wavelength, max_wavelength):
@@ -11,10 +13,12 @@ def data_process_pipeline_OV(target_dir, src_dir, temp_dir, min_wavelength, max_
      # 0. Make a copy of original data to temp folder
     dataprocess_utilities.copy_original_data(temp_dir, src_dir)
     # 检查 temp_dir 中是否存在 rois.txt
-    if dataprocess_utilities.check_and_copy_rois(temp_dir, target_dir):
-        return
+    rois_copied = dataprocess_utilities.check_and_copy_rois(temp_dir, target_dir)
+
+    # 即使 rois.txt 和 bgrois.txt 存在，仍然继续执行后续步骤
     spec_dir = os.path.join(temp_dir, "specs")
     pic_dir = os.path.join(temp_dir, "pics")
+
     # Create target_dir if it does not exist
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
@@ -44,6 +48,7 @@ def data_process_pipeline_OV(target_dir, src_dir, temp_dir, min_wavelength, max_
 
     # 6. Extract ROIs from images
     dataprocess_utilities.extract_roi_from_image(pic_dir, target_dir)
+    dataprocess_utilities.extract_bgroi_from_image(pic_dir, target_dir)
     print("ROIs extracted from images.")
 
     # 7. Calculate gray values for all ROIs
@@ -58,7 +63,10 @@ def data_process_pipeline_OV(target_dir, src_dir, temp_dir, min_wavelength, max_
     print("CSV shapes checked.")
 
     # 9. Clean up temporary files
-    dataprocess_utilities.cleanup_temp_files(temp_dir)
+    if config.delete_temp == True:
+        dataprocess_utilities.cleanup_temp_files(temp_dir)
+    else:
+        print("Temporary files retained as per configuration.")
     print("Temporary files cleaned up.")
     # -----------------------------------
 
@@ -70,10 +78,12 @@ def data_process_pipeline_IA(target_dir, src_dir, temp_dir, min_wavelength, max_
      # 0. Make a copy of original data to temp folder
     dataprocess_utilities.copy_original_data(temp_dir, src_dir)
     # 检查 temp_dir 中是否存在 rois.txt
-    if dataprocess_utilities.check_and_copy_rois(temp_dir, target_dir):
-        return
+    rois_copied = dataprocess_utilities.check_and_copy_rois(temp_dir, target_dir)
+
+    # 即使 rois.txt 和 bgrois.txt 存在，仍然继续执行后续步骤
     spec_dir = os.path.join(temp_dir, "specs")
     pic_dir = os.path.join(temp_dir, "pics")
+
     # Create target_dir if it does not exist
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)

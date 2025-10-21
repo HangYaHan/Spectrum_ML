@@ -15,7 +15,27 @@ if __name__ == "__main__":
     # 获取灰度值
     rois = test_utilities.get_rois(config.test_dir)
     greys = test_utilities.image_to_grey(test_image, rois, config.test_dir)
-    print("Greys:", greys)
+
+    # 打开 bgrois.txt 并读取第五个数 x
+    bgrois_path = config.test_dir + "bgrois.txt"
+    with open(bgrois_path, 'r') as f:
+        line = f.readline().strip()
+        parts = line.split(',')
+        if len(parts) < 5:
+            raise ValueError(f"Invalid format in bgrois.txt: {line}")
+        try:
+            x = float(parts[4])
+        except ValueError:
+            raise ValueError(f"Invalid x value in bgrois.txt: {parts[4]}")
+
+    if x == 0:
+        raise ValueError("x value in bgrois.txt is zero, cannot divide by zero.")
+
+    # 将获取的灰度值除以 x
+    greys = [grey / x for grey in greys]
+
+    print("Greys (normalized):", greys)
+
     input_dim = rois.__len__()
     output_dim = config.max_wavelength - config.min_wavelength + 1
     
