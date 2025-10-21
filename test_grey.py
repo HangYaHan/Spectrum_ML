@@ -3,7 +3,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if __name__ == "__main__":
-    pic = "example.png"  # 替换为你的图片路径
+    # 替换为你的图片路径，支持 .png, .bmp, .jpg
+    pic = "1.jpg"  # 替换为你的图片路径
+
+    # 检查文件扩展名是否支持
+    supported_formats = ['.png', '.bmp', '.jpg']
+    if not any(pic.lower().endswith(ext) for ext in supported_formats):
+        print(f"不支持的文件格式: {pic}")
+        exit()
 
     # 读取图片
     img = cv2.imread(pic, cv2.IMREAD_GRAYSCALE)

@@ -11,15 +11,24 @@ if __name__ == "__main__":
     # Append current timestamp to target_dir
     timestamp = datetime.now().strftime("%Y_%m_%d_%H%M")
     target_dir_timestamped = f"{config.target_folder}_{timestamp}"
-
-
-    dataprocess_pipeline.data_process_pipeline(
-        target_dir=target_dir_timestamped,
-        src_dir=config.source_folder,
-        temp_dir=config.temp_folder,
-        min_wavelength=config.min_wavelength,
-        max_wavelength=config.max_wavelength
-    )
+    if config.data_type == "OV":
+        dataprocess_pipeline.data_process_pipeline_OV(
+            target_dir=target_dir_timestamped,
+            src_dir=config.source_folder,
+            temp_dir=config.temp_folder,
+            min_wavelength=config.min_wavelength,
+            max_wavelength=config.max_wavelength
+        )
+    elif config.data_type == "IA":
+        dataprocess_pipeline.data_process_pipeline_IA(
+            target_dir=target_dir_timestamped,
+            src_dir=config.source_folder,
+            temp_dir=config.temp_folder,
+            min_wavelength=config.min_wavelength,
+            max_wavelength=config.max_wavelength
+        )
+    else:
+        raise ValueError(f"Unsupported data_type: {config.data_type}")
 
     train_utilities.train_resnet18_spectrum(
         min_wavelength=config.min_wavelength,

@@ -11,11 +11,10 @@ min_wavelength = 800
 max_wavelength = 1050
 step_wavelength = 1
 
-epochs = 2000
+data_type = "IA" # Idea Optics
+# data_type = "OV" # Ocean View
 
-def print_csv_shape(csv_filename):
-    df = pd.read_csv(csv_filename)
-    print(f"Shape of '{csv_filename}': {df.shape}")
+epochs = 3000
 
 if __name__ == "__main__":
     print("This is a configuration file and it stores some global variables.")
