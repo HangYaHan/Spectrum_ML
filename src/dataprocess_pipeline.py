@@ -105,6 +105,7 @@ def data_process_pipeline_IA(target_dir, src_dir, temp_dir, min_wavelength, max_
 
     # 6. Extract ROIs from images
     dataprocess_utilities.extract_roi_from_image(pic_dir, target_dir)
+    dataprocess_utilities.extract_bgroi_from_image(pic_dir, target_dir)
     print("ROIs extracted from images.")
 
     # 7. Calculate gray values for all ROIs

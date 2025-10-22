@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from src import test_utilities
 import config
+import pandas as pd
 
 if __name__ == "__main__":
     print("This is the program to test input image into model and get output spectrum.")
@@ -10,7 +11,7 @@ if __name__ == "__main__":
     model_path = config.test_dir + "model.pth"
     input_mean_path = config.test_dir + "input_mean.npy"
     input_std_path = config.test_dir + "input_std.npy"
-    test_image = "900.bmp"
+    test_image = "1.bmp"
 
     # 获取灰度值
     rois = test_utilities.get_rois(config.test_dir)
@@ -37,7 +38,7 @@ if __name__ == "__main__":
     print("Greys (normalized):", greys)
 
     input_dim = rois.__len__()
-    output_dim = config.max_wavelength - config.min_wavelength + 1
+    output_dim = 255
     
     # 加载模型
     model = test_utilities.load_resnet1d_model(model_path, input_dim, output_dim)
@@ -63,15 +64,29 @@ if __name__ == "__main__":
     output = output.cpu().numpy().flatten()
     print("Model Output:", output)
 
-    # 绘制输出图表
-    x_axis = np.arange(config.min_wavelength, config.min_wavelength + len(output))
+    # 将模型输出保存为 CSV 文件
+    output_csv_path = config.test_dir + "model_output.csv"
+    np.savetxt(output_csv_path, output, delimiter=",", fmt="%f")  # 按列保存，无表头
+    print(f"Model output saved to {output_csv_path}")
+
+    # 读取 test_dir 下的 1.csv 文件，跳过第一行
+    csv_path = config.test_dir + "1.csv"
+    csv_data = pd.read_csv(csv_path, header=None, usecols=[0, 1], names=["Wavelength", "Value"], skiprows=1)  # 跳过表头行
+
+    # 确保模型输出的 x 轴范围与 CSV 数据的 x 轴范围一致
+    csv_x = csv_data["Wavelength"].astype(float).values  # 转换为浮点数
+    model_x = np.linspace(csv_x.min(), csv_x.max(), len(output))
+
+    # 绘制模型输出和 CSV 数据图表
     plt.figure()
-    plt.plot(x_axis, output, label="Model Output")
+    plt.plot(model_x, output, label="Model Output")
+    plt.plot(csv_x, csv_data["Value"], label="CSV Data", linestyle="--")
     plt.xlabel("Wavelength (nm)")
-    plt.ylabel("Output Value")
-    plt.title("Model Output Visualization")
+    plt.ylabel("Value")
+    plt.title("Model Output vs CSV Data")
     plt.legend()
     plt.grid()
     plt.show()
+
 
 

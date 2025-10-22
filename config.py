@@ -7,12 +7,12 @@ target_folder = ".\\result\\result"
 
 test_dir = ".\\test\\"
 
-min_wavelength = 600
+min_wavelength = 800
 max_wavelength = 1050
 step_wavelength = 1
 
-# data_type = "IA" # Idea Optics
-data_type = "OV" # Ocean View
+data_type = "IA" # Idea Optics
+# data_type = "OV" # Ocean View
 
 epochs = 2000
 
