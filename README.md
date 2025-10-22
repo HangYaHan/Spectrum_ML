@@ -1,13 +1,5 @@
 # 使用方法
 
-<<<<<<< Updated upstream
-
-
-
-
-
-
-
 # 依赖项
 
 - **pandas**: 用于数据处理和分析。
@@ -97,4 +89,3 @@ delete_temp =
 ```bash
 pip install torch numpy pandas matplotlib opencv-python
 ```
->>>>>>> Stashed changes
