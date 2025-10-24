@@ -4,6 +4,7 @@ import os
 import torch
 from src import models
 from src.models import ResNet1D
+import numpy as np
 
 def get_rois(test_path):
     rois = []
@@ -44,7 +45,7 @@ def image_to_grey(image_name, rois, test_path):
     
     return greys
 
-def load_resnet1d_model(model_path, input_dim, output_dim, device='cpu'):
+def load_resnet1d_model(model_path, input_dim, output_dim):
     """
     加载 ResNet1D 模型并返回实例。
     
@@ -52,21 +53,49 @@ def load_resnet1d_model(model_path, input_dim, output_dim, device='cpu'):
         model_path (str): 模型权重文件的路径。
         input_dim (int): 模型的输入维度。
         output_dim (int): 模型的输出维度。
-        device (str): 运行设备（如 'cpu' 或 'cuda'）。
     
     Returns:
         torch.nn.Module: 加载的 ResNet1D 模型实例。
     """
     # 初始化模型
-    model = ResNet1D(input_dim=input_dim, output_dim=output_dim)
+    model = ResNet1D(input_dim, output_dim)
     
     # 加载权重
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.load_state_dict(torch.load(model_path))
     
     # 设置为评估模式
     model.eval()
     
     return model
+
+def caculate_FWHM(spectrum):
+    """
+    计算光谱的全宽半高 (FWHM)。
+    
+    Args:
+        spectrum (list or np.ndarray): 光谱数据。
+        wavelengths (list or np.ndarray): 对应的波长数据。
+
+    Returns:
+        float: 光谱的全宽半高 (FWHM)。
+    """
+    # 将光谱数据转换为 NumPy 数组
+    spectrum = np.array(spectrum)
+
+    # 找到最大值
+    max_val = spectrum.max()
+
+    # 计算半高
+    half_max = max_val / 2
+
+    # 找到半高对应的波长范围
+    above_half_max = np.where(spectrum > half_max)[0]
+    if len(above_half_max) == 0:
+        return 0.0  # 如果没有超过半高的值，返回 0
+
+    # 计算 FWHM
+    fwhm = above_half_max[-1] - above_half_max[0]
+    return fwhm
 
 
 

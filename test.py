@@ -10,7 +10,7 @@ if __name__ == "__main__":
     model_path = config.test_dir + "model.pth"
     input_mean_path = config.test_dir + "input_mean.npy"
     input_std_path = config.test_dir + "input_std.npy"
-    test_image = "900.bmp"
+    test_image = "625.bmp"
 
     # 获取灰度值
     rois = test_utilities.get_rois(config.test_dir)
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     print("Greys (normalized):", greys)
 
     input_dim = rois.__len__()
-    output_dim = config.max_wavelength - config.min_wavelength + 1
+    output_dim = 251
     
     # 加载模型
     model = test_utilities.load_resnet1d_model(model_path, input_dim, output_dim)
@@ -63,15 +63,26 @@ if __name__ == "__main__":
     output = output.cpu().numpy().flatten()
     print("Model Output:", output)
 
-    # 绘制输出图表
+    # 将模型输出保存为 CSV 文件
+    output_csv_path = config.test_dir + "model_output.csv"
+    np.savetxt(output_csv_path, output, delimiter=",", fmt="%f")  # 按列保存，无表头
+    print(f"Model output saved to {output_csv_path}")
+    
     x_axis = np.arange(config.min_wavelength, config.min_wavelength + len(output))
+
+    # 绘制模型输出和 CSV 数据图表
     plt.figure()
     plt.plot(x_axis, output, label="Model Output")
     plt.xlabel("Wavelength (nm)")
-    plt.ylabel("Output Value")
-    plt.title("Model Output Visualization")
+    plt.ylabel("Value")
+    plt.title("Model Output")
     plt.legend()
     plt.grid()
     plt.show()
 
+    print("Training Input Dim:", input_dim)
+    print("Training Output Dim:", output_dim)
 
+    # 计算 FWHM
+    fwhm = test_utilities.caculate_FWHM(output)
+    print("FWHM:", fwhm)

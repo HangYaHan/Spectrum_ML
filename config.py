@@ -7,7 +7,7 @@ target_folder = ".\\result\\result"
 
 test_dir = ".\\test\\"
 
-min_wavelength = 600
+min_wavelength = 800
 max_wavelength = 1050
 step_wavelength = 1
 
