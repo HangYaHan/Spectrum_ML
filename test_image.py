@@ -11,7 +11,9 @@ if __name__ == "__main__":
     model_path = config.test_dir + "model.pth"
     input_mean_path = config.test_dir + "input_mean.npy"
     input_std_path = config.test_dir + "input_std.npy"
-    test_image = "1.bmp"
+
+    # !!!
+    test_image = "23.png"
 
     # 获取灰度值
     rois = test_utilities.get_rois(config.test_dir)
@@ -38,7 +40,7 @@ if __name__ == "__main__":
     print("Greys (normalized):", greys)
 
     input_dim = rois.__len__()
-    output_dim = 255
+    output_dim = 701
     
     # 加载模型
     model = test_utilities.load_resnet1d_model(model_path, input_dim, output_dim)
@@ -64,28 +66,30 @@ if __name__ == "__main__":
     output = output.cpu().numpy().flatten()
     print("Model Output:", output)
 
-    # 将模型输出保存为 CSV 文件
-    output_csv_path = config.test_dir + "model_output.csv"
+    if config.flatten:
+        output = test_utilities.flatten_spectrum(output, True)
+
+    if config.add_noise:
+        output = test_utilities.noise_spectrum(output, noise_level=0.001, display=False)
+
+    # 将模型输出保存为 CSV 文件，文件名包含原始图像名
+    output_csv_path = config.test_dir + f"model_output_{test_image.split('.')[0]}.csv"
     np.savetxt(output_csv_path, output, delimiter=",", fmt="%f")  # 按列保存，无表头
     print(f"Model output saved to {output_csv_path}")
 
-    # 读取 test_dir 下的 1.csv 文件，跳过第一行
-    csv_path = config.test_dir + "1.csv"
-    csv_data = pd.read_csv(csv_path, header=None, usecols=[0, 1], names=["Wavelength", "Value"], skiprows=1)  # 跳过表头行
+    start_wl = float(config.min_wavelength)
+    # 生成本样本的波长轴，长度与光谱向量一致
+    length = len(output)  # 使用模型输出的长度
+    sample_x = start_wl + np.arange(length) * float(config.step_wavelength)
 
-    # 确保模型输出的 x 轴范围与 CSV 数据的 x 轴范围一致
-    csv_x = csv_data["Wavelength"].astype(float).values  # 转换为浮点数
-    model_x = np.linspace(csv_x.min(), csv_x.max(), len(output))
-
-    # 绘制模型输出和 CSV 数据图表
-    plt.figure()
-    plt.plot(model_x, output, label="Model Output")
-    plt.plot(csv_x, csv_data["Value"], label="CSV Data", linestyle="--")
-    plt.xlabel("Wavelength (nm)")
-    plt.ylabel("Value")
-    plt.title("Model Output vs CSV Data")
+    # 可视化输出光谱
+    plt.figure(figsize=(10, 6))
+    plt.plot(sample_x, output, label='Model Output Spectrum')
+    plt.xlabel('Wavelength')
+    plt.ylabel('Intensity')
+    plt.title('Model Output Spectrum Visualization')
     plt.legend()
-    plt.grid()
+    plt.grid(False)
     plt.show()
 
 

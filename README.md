@@ -1,91 +1,90 @@
-# 使用方法
+# Spectrum_ML — 使用说明
+这是一个用 PyTorch 与数据预处理管线训练/测试基于图像预测光谱的项目。下面是更详细的项目说明、安装与运行步骤（包含 Windows PowerShell 的注意事项）。
 
-# 依赖项
+## 项目结构（重要文件）
 
-- **pandas**: 用于数据处理和分析。
-- **cv2**: OpenCV 库，用于图像处理。
-- **matplotlib**: 用于数据可视化。
-- **numpy**: 数值计算库。
-- **torch**: PyTorch 框架，用于深度学习。
-- **torchvision**: PyTorch 的计算机视觉工具包。
-=======
-## 使用方法
+- `config.py`：全局配置项（波长范围、路径、处理选项等）。
+- `run.py`：主流程脚本（数据处理 + 训练/评估）。
+- `test_image.py`：单张图片推理并可视化输出光谱。
+- `test_grey.py` / `test_camera.py`：辅助测试脚本。
+- `merge_image.py`：合并并可视化多个模型/测量结果。
+- `requirements.txt`：Python 依赖清单。
+- `src/`：项目源代码（`dataprocess_pipeline.py`、`dataprocess_utilities.py`、`test_utilities.py`、`models.py` 等）。
+- `rawdata/`：原始数据目录（`pics/`、`specs/`）。
+- `result/`：训练或运行输出目录（模型、图表、csv 等）。
+- `packages/`：本地 wheel 包目录（当无法联网时使用）。
 
-在项目根目录下创建两个文件夹：`rawdata` 和 `test`。在 `rawdata` 文件夹中创建两个子文件夹：`specs` 和 `pics`。请确保文件夹名称正确，注意大小写。
+（仓库可能包含额外脚本如 `rename.py`、`rename_files.py`、`merge/` 等）
 
-- `specs` 文件夹中存放光谱文件。
-- `pics` 文件夹中存放照片。
+## 环境与依赖
 
-### 配置 `config` 文件
+- 稳定运行的 Python 版本：3.12。
+- 建议使用虚拟环境（venv 或 conda）。
 
+### 安装依赖（联网）
+```powershell
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+### 离线安装（仓库包含 `packages/`）
+```powershell
+python -m pip install --no-index --find-links=packages -r requirements.txt
+```
+
+## 配置 `config.py`
+
+在 `config.py` 中设置以下关键项：
 ```python
-min_wavelength = 
-max_wavelength = 
-step_wavelength = 
-
-# data_type = "IA" # Idea Optics
-data_type = "OV" # Ocean View
-
-epochs = 
-delete_temp = 
+min_wavelength = 400
+max_wavelength = 1100
+step_wavelength = 1
+data_type = "OV"  # 或 "IA"
+flatten = False
+add_noise = False
+epochs = 50
+delete_temp = True
 ```
 
-- `min_wavelength`：起始波长。
-- `max_wavelength`：终止波长。
-- `step_wavelength`：波长步长。
-- `data_type`：光谱数据类型，目前支持复享光学（Idea Optics）和海洋光学（Ocean View）的光谱仪数据。使用其中一个时，请注释掉另一个。
-- `epochs`：机器学习的迭代次数。
-- `delete_temp`：是否删除中间结果。如果设置为 `false`，中间结果将被保留；否则会自动删除。
+根据你的光谱数据来源（Idea Optics / OceanView）调整 `data_type` 并确保 `min_wavelength`/`max_wavelength` 与 `step_wavelength` 匹配你的数据。flatten是专门用于单色光还原的选项，在还原非单色光时通常保持 False。add_noise是在还原时向数据添加噪声以增强鲁棒性的选项，可根据需要开启。epochs 是训练轮数，delete_temp 控制是否删除中间临时文件。
 
-### 运行项目
+## 运行流程（快速开始）
 
-1. 安装项目依赖（见下文）。
-2. 运行项目根目录下的 `run.py`。
-3. 控制台会输出提示信息，请按照提示操作：
-   - 首先会弹出一张图片，使用鼠标拖动选择滤光片的区域。每次选择后按回车确认，可以多次选择，直到按下 `ESC` 键结束。
-   - 接着会弹出另一张图片，用于选择基底区域（无滤光片的区域）。此步骤只能选择一次。
-4. 等待程序运行完成。
+1. 准备数据目录：
+   - `rawdata/specs/` 放入原始光谱文件（文本）。
+   - `rawdata/pics/` 放入滤光片图片（.bmp/.jpg）。
+2. 设置 `config.py` 中的参数。
+3. 训练：
+   ```powershell
+   python .\run.py
+   ```
+   运行时脚本会引导你用鼠标选择 ROI（滤光片区域）和背景区域。
+4. 单张图片推理（示例）：
 
-### 输出结果
+   在test文件夹中放置模型文件，输入归一化文件，以及待推理的图片
 
-结果将保存在 `result` 文件夹中，包括：
-- 随机抽取的五份数据的真实值与预测值对比图。
-- `rois.txt`：滤光片的坐标。
-- `bgrois.txt`：基底区域的坐标。
-- `model.pth`：训练好的模型。
-- `input_mean.npy` 和 `input_std.npy`：输入归一化参数。
-- `grey.csv`：灰度表。
-- `specs.csv`：光谱表。
+   修改 `test_image.py` 中的路径
+   ```powershell
+   python .\test_image.py
+   ```
+   输出文件会保存为 `test/model_output_<imagename>.csv`（脚本根据图像名自动命名），并弹出可视化图表。
+5. 两份数据合并与可视化（示例）：
 
-其中，`grey.csv` 和 `specs.csv` 是机器学习的输入数据。
+   在merge文件夹中放置待合并的csv文件和txt文件
 
-### 测试模型
+   修改 `merge_image.py` 中的路径与文件名列表
+   ```powershell
+   python .\merge_image.py
+   ```
+   输出合并结果 CSV 和图表。
 
-如果需要测试模型：
-1. 将 `result` 文件夹中的 `rois.txt`、`bgrois.txt`、`model.pth`、`input_mean.npy` 和 `input_std.npy` 拷贝到 `test` 文件夹。
-2. 修改 `test_grey.py` 中的参数。
-3. 运行程序即可测试任意一张图片。
+## 常见问题与排查
 
-**注意**：如果输入维度不匹配，需要手动调整参数。目前该功能尚未完全实现。
+- pip 找不到：在 PowerShell 中请使用 `python -m pip`；如果你需要直接使用 `pip`，把 Python 安装目录下的 `Scripts` 添加到环境变量 PATH，或重新运行安装程序并勾选 "Add Python to PATH"。
+- 合并后出现 NaN：若 `merge_image.py` 中合并结果为 NaN，可能原因是 CSV 读取后为 DataFrame 且索引不对齐，或原始数据包含 NaN/非数值。已在脚本中加入将数据转换为 numpy 数组并填充 NaN 的逻辑。
+- 长度不匹配：若波长轴长度与输出向量长度不同，请确认 `config.step_wavelength` 与数据分辨率一致，或检查输入 CSV 的列数/表头是否被误读。
 
-## 项目依赖
+## 进阶配置与调整
 
-本项目依赖以下主要库和工具：
-
-### Python 库
-- `torch`：用于深度学习模型的构建和训练。
-- `numpy`：用于数值计算。
-- `pandas`：用于数据处理和分析。
-- `matplotlib`：用于数据可视化。
-- `opencv-python`：用于图像处理。
-- `shutil`：用于文件操作。
-
-### 环境要求
-- Python 版本：3.8 或更高。
-- 操作系统：Windows 或 Linux。
-
-### 安装依赖
-运行以下命令安装所需依赖：
-```bash
-pip install torch numpy pandas matplotlib opencv-python
-```
+- 如果希望使用双 y 轴或改变图例位置，可以在 `merge_image.py` 或 `test_image.py` 中自定义 matplotlib 参数。
+- 如果不想用 NaN 填充为 0 的策略，可改为插值或前向填充（根据实验需求）。

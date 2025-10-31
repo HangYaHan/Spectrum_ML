@@ -20,7 +20,7 @@ def rename_and_match_files(pic_dir, spec_dir):
         width = len(str(num_files))
         for idx, (filename, _) in enumerate(files_with_mtime, 1):
             ext = pathlib.Path(filename).suffix
-            new_name = f"{str(idx).zfill(width)}{ext}"
+            new_name = f"{str(idx).zfill(width)}888{ext}"
             src = os.path.join(dir, filename)
             dst = os.path.join(dir, new_name)
             os.rename(src, dst)
@@ -135,16 +135,13 @@ def extract_roi_from_image(pic_dir, target_dir):
         print(f"rois.txt already exists in {target_dir}, skipping ROI extraction.")
         return
 
-    # find first image file
-    img_files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png', '.bmp'))]
-    if not img_files:
-        print(f"No image files found in: {pic_dir}")
+    # 指定圖片文件名
+    img_filename = '101888.bmp'
+    img_path = os.path.join(pic_dir, img_filename)
+    if not os.path.exists(img_path):
+        print(f"Specified image file not found: {img_path}")
         return
 
-    img_files.sort(key=lambda x: os.path.getctime(os.path.join(pic_dir, x)))  # sort files by creation time
-    # get the middle one after sorting by filename
-    mid_index = len(img_files) // 2
-    img_path = os.path.join(pic_dir, img_files[mid_index])
     img = cv2.imread(img_path)
     if img is None:
         print(f"Failed to load image: {img_path}")
@@ -348,18 +345,13 @@ def extract_bgroi_from_image(pic_dir, target_dir):
         print(f"bgrois.txt already exists in {target_dir}, skipping ROI extraction.")
         return
 
-    # 获取所有图片文件
-    img_files = [f for f in os.listdir(pic_dir) if f.lower().endswith(('.jpg', '.png', '.bmp'))]
-    if not img_files:
-        print(f"No image files found in: {pic_dir}")
+    # 指定图片文件名
+    img_filename = '101888.bmp'
+    img_path = os.path.join(pic_dir, img_filename)
+    if not os.path.exists(img_path):
+        print(f"Specified image file not found: {img_path}")
         return
 
-    # 按创建时间排序
-    img_files.sort(key=lambda x: os.path.getctime(os.path.join(pic_dir, x)))
-
-    # 获取中间图片
-    mid_index = len(img_files) // 2
-    img_path = os.path.join(pic_dir, img_files[mid_index])
     img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
     if img is None:
         print(f"Failed to load image: {img_path}")

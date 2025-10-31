@@ -111,13 +111,22 @@ def train_resnet18_spectrum(
 
     # 随机抽取5个测试样本，绘制预测值与真实值
     # 简单划分：最后10%为测试集
-    test_size = max(5, int(len(dataset)*0.1))
+    test_size = max(20, int(len(dataset)*0.1))
     indices = np.arange(len(dataset))
     np.random.shuffle(indices)
     test_indices = indices[-test_size:]
     # 确保抽样数量不超过测试集大小
-    sample_size = min(5, len(test_indices))
+    sample_size = min(20, len(test_indices))
     sample_indices = np.random.choice(test_indices, size=sample_size, replace=False)
+
+    # 构建波长轴：从 config.min_wavelength 开始，步长为函数参数 step
+    # 使用 y_true 的长度来确定轴的终点（为保证与 y_true/y_pred 对齐）
+    # 这里优先使用 config.min_wavelength，如需使用传入的 min_wavelength 参数可替换为该参数
+    try:
+        start_wl = float(config.min_wavelength)
+    except Exception:
+        start_wl = float(min_wavelength)
+    x_axis = start_wl + np.arange(0)  # placeholder, will be replaced per-sample
 
     model.eval()
     with torch.no_grad():
@@ -127,10 +136,16 @@ def train_resnet18_spectrum(
             y_pred = model(X_sample).cpu().numpy().flatten()
             # 绘制原始光谱和生成光谱的对比图
             plt.figure()
-            plt.plot(y_true, label='Original Spectrum', marker='o')
-            plt.plot(y_pred, label='Generated Spectrum', marker='x')
+
+            # 生成本样本的波长轴，长度与光谱向量一致
+            length = len(y_true)
+            sample_x = start_wl + np.arange(length) * float(step)
+
+            plt.plot(sample_x, y_true, label='Original Spectrum', marker='o')
+            plt.plot(sample_x, y_pred, label='Generated Spectrum', marker='x')
             plt.title(f'Sample {i+1} Spectrum Comparison')
             plt.ylabel('Intensity')
+            plt.xlabel('Wavelength')
             plt.legend()
             plt.grid(True)
             plt.savefig(os.path.join(save_path, f'sample_{i+1}_spectrum_comparison.png'))

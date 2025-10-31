@@ -68,5 +68,136 @@ def load_resnet1d_model(model_path, input_dim, output_dim, device='cpu'):
     
     return model
 
+def flatten_spectrum(spectrum, display=False, peak_width=17, smooth_factor=0.95):
+    """
+    Flatten the spectrum by keeping the main peak and its shape, setting other values to 0.
+
+    Args:
+        spectrum (numpy.ndarray): The spectrum data (1D array).
+        display (bool): Whether to display the spectrum before and after flattening.
+        peak_width (int): The width of the peak to retain around the main peak.
+        smooth_factor (float): A multiplier for the Gaussian smoothing. Higher values make the corners rounder.
+
+    Returns:
+        numpy.ndarray: The flattened spectrum.
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    def gaussian(x, mu, sigma):
+        """Simple Gaussian function."""
+        return np.exp(-0.5 * ((x - mu) / sigma) ** 2)
+
+    # Find the index of the main peak
+    peak_index = np.argmax(spectrum)
+
+    # Create a new spectrum with all values set to 0
+    flattened_spectrum = np.zeros_like(spectrum)
+
+    # Retain the shape of the peak around the main peak
+    start_index = max(0, peak_index - peak_width)
+    end_index = min(len(spectrum), peak_index + peak_width + 1)
+    flattened_spectrum[start_index:end_index] = spectrum[start_index:end_index]
+
+    # Apply Gaussian smoothing to the peak edges
+    sigma = (peak_width / 3) * smooth_factor  # Adjust sigma with smooth_factor
+    for i in range(start_index, end_index):
+        weight = gaussian(i, peak_index, sigma)
+        flattened_spectrum[i] *= weight
+
+    if display:
+        # Plot the spectrum before and after flattening
+        plt.figure(figsize=(10, 5))
+
+        # Original spectrum
+        plt.subplot(1, 2, 1)
+        plt.plot(spectrum, label='Original Spectrum', color='blue')
+        plt.title('Original Spectrum')
+        plt.xlabel('Index')
+        plt.ylabel('Intensity')
+        plt.legend()
+
+        # Flattened spectrum
+        plt.subplot(1, 2, 2)
+        plt.plot(flattened_spectrum, label='Flattened Spectrum', color='red')
+        plt.title('Flattened Spectrum')
+        plt.xlabel('Index')
+        plt.ylabel('Intensity')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+    return flattened_spectrum
+
+def noise_spectrum(spectrum, noise_level=0.01, display=False):
+    """
+    Add Gaussian noise to the spectrum.
+
+    Args:
+        spectrum (numpy.ndarray): The original spectrum data (1D array).
+        noise_level (float): The standard deviation of the Gaussian noise relative to the max value of the spectrum.
+        display (bool): Whether to display the spectrum before and after adding noise.
+
+    Returns:
+        numpy.ndarray: The noisy spectrum.
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    max_value = np.max(spectrum)
+    noise = np.random.normal(0, noise_level * max_value, spectrum.shape)
+    noisy_spectrum = spectrum + noise
+
+    if display:
+        # Plot the spectrum before and after adding noise
+        plt.figure(figsize=(10, 5))
+
+        # Original spectrum
+        plt.subplot(1, 2, 1)
+        plt.plot(spectrum, label='Original Spectrum', color='blue')
+        plt.title('Original Spectrum')
+        plt.xlabel('Index')
+        plt.ylabel('Intensity')
+        plt.legend()
+
+        # Noisy spectrum
+        plt.subplot(1, 2, 2)
+        plt.plot(noisy_spectrum, label='Noisy Spectrum', color='red')
+        plt.title('Noisy Spectrum')
+        plt.xlabel('Index')
+        plt.ylabel('Intensity')
+        plt.legend()
+
+        plt.tight_layout()
+        plt.show()
+
+    return noisy_spectrum
+
+def rename_files_in_directory(directory, start_number=1, step=1):
+    """
+    Rename all files in the given directory, starting from `start_number` and incrementing by `step`,
+    sorted by creation time.
+
+    Args:
+        directory (str): Path to the directory containing files to rename.
+        start_number (int): Starting number for renaming.
+        step (int): Step size for numbering.
+    """
+    if not os.path.exists(directory):
+        print(f"Directory not found: {directory}")
+        return
+
+    files = [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]
+    files_with_ctime = [(f, os.path.getctime(os.path.join(directory, f))) for f in files]
+    files_with_ctime.sort(key=lambda x: x[1])  # Sort by creation time
+
+    for idx, (filename, _) in enumerate(files_with_ctime):
+        ext = os.path.splitext(filename)[1]  # Get file extension
+        new_name = f"{start_number + idx * step}{ext}"
+        src = os.path.join(directory, filename)
+        dst = os.path.join(directory, new_name)
+        os.rename(src, dst)
+        print(f"Renamed: {filename} -> {new_name}")
 
 
