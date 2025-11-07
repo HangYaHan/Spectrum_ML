@@ -88,3 +88,54 @@ delete_temp = True
 
 - 如果希望使用双 y 轴或改变图例位置，可以在 `merge_image.py` 或 `test_image.py` 中自定义 matplotlib 参数。
 - 如果不想用 NaN 填充为 0 的策略，可改为插值或前向填充（根据实验需求）。
+
+## 以包（module）方式运行模块（推荐）
+
+为了保证仓库中的导入（例如 `from src.system.config_manager import ...`）在本地与部署环境一致，推荐把 `src` 作为顶层包来运行 Python 模块。这样 Python 会正确识别 `src` 目录并找到包内模块。
+
+1. 首先确保仓库根目录（包含 `src` 文件夹）为当前工作目录：
+
+```powershell
+cd D:\Code\Spectrum_ML
+```
+
+2. 以模块方式运行（示例：运行像 `pixelanalysis_utilities.py` 这样的模块）：
+
+```powershell
+# 以模块形式运行，Python 会把项目根加入搜索路径，从而允许 'from src.xxx import ...' 正常工作
+python -m src.pixelanalysis.pixelanalysis_utilities
+```
+
+3. 如果你直接运行单个脚本（例如 `python src\pixelanalysis\pixelanalysis_utilities.py`），Python 会把脚本所在目录（`src/pixelanalysis`）当作模块根，导致 `from src...` 导入失败（报 "No module named 'src'"）。使用 `-m` 可以避免这个问题。
+
+4. 另一种可选方式是设置环境变量 `PYTHONPATH`（临时）：
+
+```powershell
+$env:PYTHONPATH = 'D:\Code\Spectrum_ML'
+python src\pixelanalysis\pixelanalysis_utilities.py
+```
+
+但推荐使用 `python -m` 的包运行方式，因为更稳定且符合 Python 的标准包导入机制。
+
+## 在 VS Code 中避免生成临时运行文件（推荐设置）
+
+如果你使用 VS Code 进行开发，某些扩展（如 Code Runner）在运行代码片段时可能会创建临时文件（例如 `tempCodeRunnerFile.py`）。为避免生成临时文件并保证包导入正常，推荐以下做法：
+
+1. 使用官方 Python 扩展的“Run Python File in Terminal”（右键 -> Run Python File in Terminal）来运行当前文件；这不会创建临时文件并且在集成终端执行，行为与 `python <file>` 相同，但会保留当前工作目录为 workspace root（如果你希望以包方式运行，仍推荐 `python -m` 或使用 launch.json）。
+
+2. 如果你仍想使用 Code Runner，可以在工作区设置中调整行为，已在本仓库添加了推荐的 workspace 设置：`.vscode/settings.json`，包含：
+
+    - `code-runner.runInTerminal: true`（在集成终端运行）
+    - `code-runner.saveFileBeforeRun: true`（运行前保存文件，避免使用临时副本）
+    - `code-runner.cwd: ${workspaceFolder}`（将工作目录设为项目根，以便 `from src...` 导入正常工作）
+
+    这些设置已经添加到仓库的 `.vscode/settings.json`，你可以直接使用，也可以根据个人偏好调整。
+
+3. 更可靠的方式是使用 VS Code 的 launch 配置（`.vscode/launch.json`），并使用 `module` 选项或我之前添加的 prompt 型配置来以模块方式运行（`python -m <module>`）。按 F5 调试可以正确处理包导入并支持断点。
+
+4. 如果你不想在工作区使用 Code Runner，可在扩展视图中将 Code Runner 禁用（Workspace 禁用），这样可以防止插件生成临时文件或改变运行方式。
+
+如果你希望，我可以（任选其一）：
+- 把 `pixelanalysis_utilities.py` 改为封装成 `main()` 并提供 `run_module.py` 快捷启动脚本；
+- 或为你生成几个常用模块的一键调试配置（`.vscode/launch.json`）；
+- 或把 Code Runner 在工作区禁用（通过编辑 workspace 的推荐扩展设置）。

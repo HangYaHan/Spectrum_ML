@@ -1,0 +1,24 @@
+{
+    "system_parameters": {
+        "source_folder": "./data/rawdata",
+        "temp_folder": "./data/temp",
+        "target_folder": "./data/result/result",
+        "test_dir": "./data/test/",
+        "merge_dir": "./data/merge/"
+    },
+    "data_process_parameters": {
+        "min_wavelength": 400,
+        "max_wavelength": 1100,
+        "step_wavelength": 1,
+        "delete_temp": false,
+        "data_type": "OV"
+    },
+    "machine_learning_parameters": {
+        "epochs": 2000
+    },
+    "test_parameters": {
+        "flatten": false,
+        "add_noise": false,
+        "offset": 0
+    }
+}

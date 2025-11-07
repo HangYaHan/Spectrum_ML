@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from src import test_utilities
+from deployment import test_utilities
 import config
 import pandas as pd
 
