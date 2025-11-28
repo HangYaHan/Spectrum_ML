@@ -1,0 +1,11 @@
+{
+    // Run Code Runner in the integrated terminal (prevents some temp-file behavior)
+    "code-runner.runInTerminal": true,
+    // Save the file before running (prevents Code Runner from using a temporary copy)
+    "code-runner.saveFileBeforeRun": true,
+    // Set working directory to workspace root so package imports like `src.*` work
+    "code-runner.cwd": "${workspaceFolder}",
+    // If you prefer not to use Code Runner at all, disable it for this workspace via the Extensions view.
+    // Also prefer using the Python extension's "Run Python File in Terminal" (right-click) for package-aware runs.
+    "python.formatting.provider": "black"
+}

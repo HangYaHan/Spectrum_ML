@@ -13,7 +13,7 @@ def ensure_dir(path: str) -> None:
 
 if __name__ == "__main__":
     # 打开摄像头 1
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
         print("无法打开摄像头 1")

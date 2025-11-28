@@ -10,3 +10,6 @@
 README.pdf
 tempCodeRunnerFile.__pycache__
 packages.7z
+/data
+/logs
+*.pyc

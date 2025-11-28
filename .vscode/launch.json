@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Python module (prompt)",
+            "type": "python",
+            "request": "launch",
+            "module": "${input:moduleName}",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "moduleName",
+            "type": "promptString",
+            "description": "Enter python module to run (e.g. src.pixelanalysis.pixelanalysis_utilities)",
+            "default": "src.main"
+        }
+    ]
+}
