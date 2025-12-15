@@ -1,90 +1,88 @@
-# Spectrum_ML — 使用说明
-这是一个用 PyTorch 与数据预处理管线训练/测试基于图像预测光谱的项目。下面是更详细的项目说明、安装与运行步骤（包含 Windows PowerShell 的注意事项）。
+## 项目简介
 
-## 项目结构（重要文件）
+Spectrum_ML 是一个将滤光片图片映射到光谱的端到端流水线，包含数据清洗、ROI 交互标注、特征提取与基于 PyTorch 的 1D ResNet 训练与推理。项目同时兼容 OceanView (OV) 与 Idea Optics (IA) 两类光谱数据格式。
 
-- `config.py`：全局配置项（波长范围、路径、处理选项等）。
-- `run.py`：主流程脚本（数据处理 + 训练/评估）。
-- `test_image.py`：单张图片推理并可视化输出光谱。
-- `test_grey.py` / `test_camera.py`：辅助测试脚本。
-- `merge_image.py`：合并并可视化多个模型/测量结果。
-- `requirements.txt`：Python 依赖清单。
-- `src/`：项目源代码（`dataprocess_pipeline.py`、`dataprocess_utilities.py`、`test_utilities.py`、`models.py` 等）。
-- `rawdata/`：原始数据目录（`pics/`、`specs/`）。
-- `result/`：训练或运行输出目录（模型、图表、csv 等）。
-- `packages/`：本地 wheel 包目录（当无法联网时使用）。
+## 目录速览
 
-（仓库可能包含额外脚本如 `rename.py`、`rename_files.py`、`merge/` 等）
+- 配置与入口：[config.py](config.py)、[run.py](run.py)
+- 数据处理： [src/dataprocess_pipeline.py](src/dataprocess_pipeline.py)、[src/dataprocess_utilities.py](src/dataprocess_utilities.py)
+- 训练： [src/train_utilities.py](src/train_utilities.py)、[src/models.py](src/models.py)
+- 推理与工具：test_image.py、test_camera.py、test_grey.py、merge_image.py
+- 数据与结果：rawdata/（输入） 、result/（输出）、temp/（中间件，可选保留）
 
-## 环境与依赖
+## 环境准备
 
-- 稳定运行的 Python 版本：3.12。
-- 建议使用虚拟环境（venv 或 conda）。
-
-### 安装依赖（联网）
+- Python 3.12（建议使用 venv 或 conda）。
+- 联网安装：
 ```powershell
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
-
-### 离线安装（仓库包含 `packages/`）
+- 离线安装（仓库含 packages/）：
 ```powershell
 python -m pip install --no-index --find-links=packages -r requirements.txt
 ```
 
-## 配置 `config.py`
+## 配置说明（config.py）
 
-在 `config.py` 中设置以下关键项：
-```python
-min_wavelength = 400
-max_wavelength = 1100
-step_wavelength = 1
-data_type = "OV"  # 或 "IA"
-flatten = False
-add_noise = False
-epochs = 50
-delete_temp = True
+| 参数                            | 作用                               | 建议值           |
+| ------------------------------- | ---------------------------------- | ---------------- |
+| source_folder                   | 原始数据根目录                     | .\rawdata        |
+| temp_folder                     | 处理时的临时目录                   | .\temp           |
+| target_folder                   | 输出前缀目录（运行时自动加时间戳） | .\result\result  |
+| min_wavelength / max_wavelength | 截取光谱范围                       | 400 / 1100       |
+| step_wavelength                 | 波长步长（用于生成波长轴）         | 1                |
+| data_type                       | 数据来源：OV 或 IA                 | OV 或 IA         |
+| delete_temp                     | 流水线结束后是否清理 temp          | True / False     |
+| epochs                          | 训练轮数                           | 1000+ (根据需要) |
+| flatten / add_noise             | 推理时单色光还原或增强鲁棒性可选项 | False            |
+
+若使用 IA 数据，请将 data_type 设为 IA；否则默认 OV。波长范围需与光谱文件的分辨率匹配。
+
+## 数据准备
+
+- rawdata/specs/：放置光谱文件（OV 使用 .txt，IA 使用 .csv）。
+- rawdata/pics/：放置对应的滤光片图像（bmp/jpg/png，命名无严格要求，程序会按修改时间重命名并对齐）。
+- 可选：在 rawdata 下预先放置 rois.txt 与 bgrois.txt，可跳过交互式标注。
+
+## 一键训练（OV/IA 通用）
+
+入口脚本 [run.py](run.py) 会按时间戳创建输出目录并调用对应流水线后训练 1D ResNet。
+
+```powershell
+python .\run.py
 ```
 
-根据你的光谱数据来源（Idea Optics / OceanView）调整 `data_type` 并确保 `min_wavelength`/`max_wavelength` 与 `step_wavelength` 匹配你的数据。flatten是专门用于单色光还原的选项，在还原非单色光时通常保持 False。add_noise是在还原时向数据添加噪声以增强鲁棒性的选项，可根据需要开启。epochs 是训练轮数，delete_temp 控制是否删除中间临时文件。
+流程要点：
+- 复制 rawdata 到 temp 并重命名、对齐图片与光谱。
+- OV：去头、取整、按波长截取并合并为 spectrum.csv；IA：去头后合并为单一 spectrum.csv。
+- 交互式选择滤光片 ROI 与背景 ROI，生成 rois.txt 与 bgrois.txt；随后计算灰度生成 grey.csv。
+- 训练 ResNet1D，输出模型、归一化参数与训练曲线到 result/result_时间戳/。
+- delete_temp=True 时会清理 temp；否则保留排查。
 
-## 运行流程（快速开始）
+## 推理与可视化
 
-1. 准备数据目录：
-   - `rawdata/specs/` 放入原始光谱文件（文本）。
-   - `rawdata/pics/` 放入滤光片图片（.bmp/.jpg）。
-2. 设置 `config.py` 中的参数。
-3. 训练：
-   ```powershell
-   python .\run.py
-   ```
-   运行时脚本会引导你用鼠标选择 ROI（滤光片区域）和背景区域。
-4. 单张图片推理（示例）：
+- 单张图片推理：配置 test_image.py 中模型路径、归一化文件、待测图片后运行：
+```powershell
+python .\test_image.py
+```
+输出 CSV 与光谱对比图保存到 test/。
 
-   在test文件夹中放置模型文件，输入归一化文件，以及待推理的图片
+- 相机实时/灰度测试：可参考 test_camera.py、test_grey.py。
 
-   修改 `test_image.py` 中的路径
-   ```powershell
-   python .\test_image.py
-   ```
-   输出文件会保存为 `test/model_output_<imagename>.csv`（脚本根据图像名自动命名），并弹出可视化图表。
-5. 两份数据合并与可视化（示例）：
+- 多结果合并：在 merge/ 下放置待合并 csv/txt，配置 merge_image.py 后运行：
+```powershell
+python .\merge_image.py
+```
 
-   在merge文件夹中放置待合并的csv文件和txt文件
+## 产出物
 
-   修改 `merge_image.py` 中的路径与文件名列表
-   ```powershell
-   python .\merge_image.py
-   ```
-   输出合并结果 CSV 和图表。
+- result/result_时间戳/：训练模型 model.pth、归一化参数 input_mean.npy / input_std.npy、训练曲线 training_loss_curve.png、若干样本对比图 sample_*_spectrum_comparison.png、grey.csv、spectrum.csv。
+- test/：推理结果 csv 与可视化图。
 
-## 常见问题与排查
+## 常见问题
 
-- pip 找不到：在 PowerShell 中请使用 `python -m pip`；如果你需要直接使用 `pip`，把 Python 安装目录下的 `Scripts` 添加到环境变量 PATH，或重新运行安装程序并勾选 "Add Python to PATH"。
-- 合并后出现 NaN：若 `merge_image.py` 中合并结果为 NaN，可能原因是 CSV 读取后为 DataFrame 且索引不对齐，或原始数据包含 NaN/非数值。已在脚本中加入将数据转换为 numpy 数组并填充 NaN 的逻辑。
-- 长度不匹配：若波长轴长度与输出向量长度不同，请确认 `config.step_wavelength` 与数据分辨率一致，或检查输入 CSV 的列数/表头是否被误读。
-
-## 进阶配置与调整
-
-- 如果希望使用双 y 轴或改变图例位置，可以在 `merge_image.py` 或 `test_image.py` 中自定义 matplotlib 参数。
-- 如果不想用 NaN 填充为 0 的策略，可改为插值或前向填充（根据实验需求）。
+- pip 找不到：在 PowerShell 使用 python -m pip，或将 Python 安装目录下 Scripts 加入 PATH。
+- 文件数不匹配：若 pics 与 specs 数量不同，流水线会直接报错，请确认输入数据。
+- 光谱长度不一致：检查 step_wavelength 与原始分辨率是否匹配，或输入文件是否缺失数据。
+- ROI 选择窗口无法弹出：确保本机已安装 GUI 依赖（OpenCV）并在桌面环境运行。
